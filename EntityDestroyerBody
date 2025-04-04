@@ -1,0 +1,130 @@
+package fr.AllFightvayzor.monsters.destroyer;
+
+import fr.AllFightvayzor.monsters.destroyer.utils.EntityAINearestAttackableTargetAlex;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.DamageSource;
+import net.minecraft.util.MathHelper;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.World;
+
+public class EntityDestroyerBody extends EntityDestroyerBase
+{
+    private final WormMovementBody mover = new WormMovementBody(this);
+    private static final ResourceLocation destroyerBody = new ResourceLocation("textures/entity/destroyer/body.png");
+    private static final ResourceLocation destroyerBodyGold = new ResourceLocation("textures/entity/destroyer/bodyGold.png");
+    private EntityLivingBase laserTarget;
+
+    public EntityDestroyerBody(World par1World)
+    {
+        super(par1World);
+        this.bodySpeed = 0.6D;
+        this.rangeForParts = 70.0D;
+        this.segmentDistance = 1.9D;
+        this.maxBodySpeed = 1.4D;
+        this.targetTasks.addTask(1, new EntityAINearestAttackableTargetAlex(this, EntityLivingBase.class, 0, true, false, this.selector, 128.0D));
+    }
+
+    /**
+     * Called when the entity is attacked.
+     */
+    public boolean attackEntityFrom(DamageSource par1DamageSource, float par2)
+    {
+        if (this.followed != null && this.followed.attackEntityFrom(par1DamageSource, (float)MathHelper.floor_float(par2 * 0.7F)))
+        {
+            super.attackEntityFrom(par1DamageSource, 0.0F);
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public ResourceLocation getTexture()
+    {
+        return this.dataWatcher.getWatchableObjectByte(17) == 1 ? destroyerBodyGold : destroyerBody;
+    }
+
+    protected void entityInit()
+    {
+        super.entityInit();
+        this.dataWatcher.addObject(17, Byte.valueOf((byte)0));
+    }
+
+    public float getAttackStrength(Entity par1Entity)
+    {
+        return 16.0F + ((EntityLivingBase)par1Entity).getHealth() / 25.0F;
+    }
+
+    /**
+     * main AI tick function, replaces updateEntityActionState
+     */
+    protected void updateAITick()
+    {
+        this.mover.updateMovement();
+
+        if (this.followed != null && this.getPartID() == 0)
+        {
+            this.dataWatcher.updateObject(17, Byte.valueOf((byte)(((EntityDestroyerHead)this.followed).isArmored() ? 1 : 0)));
+        }
+        else if (this.targetedEntity != null)
+        {
+            this.dataWatcher.updateObject(17, Byte.valueOf(this.targetedEntity.getDataWatcher().getWatchableObjectByte(17)));
+        }
+
+        if (this.didCheck)
+        {
+            if (this.targetedEntity == null || !this.targetedEntity.isEntityAlive())
+            {
+                this.setHealth(this.getHealth() - 1999.0F);
+            }
+
+            if ((this.followed == null || !this.followed.isEntityAlive()) && this.rand.nextInt(60) == 0)
+            {
+                this.worldObj.createExplosion(this, this.posX, this.posY, this.posZ, 2.0F, false);
+            }
+        }
+
+        if (this.followed != null && this.getAttackTarget() != null)
+        {
+            if (this./*TODO ALLFIGHT*/canEntityBeSeenThroughNonSolids(this.getAttackTarget()))
+            {
+                ++this.attackCounter;
+
+                if (this.attackCounter == 10)
+                {
+                    this.useLaser(this.getAttackTarget(), false);
+                    this.attackCounter = -20;
+                }
+            }
+            else if (this.attackCounter > 0)
+            {
+                --this.attackCounter;
+            }
+        }
+        else if (this.attackCounter > 0)
+        {
+            --this.attackCounter;
+        }
+    }
+
+    /**
+     * (abstract) Protected helper method to write subclass entity data to NBT.
+     */
+    public void writeEntityToNBT(NBTTagCompound par1NBTTagCompound)
+    {
+        super.writeEntityToNBT(par1NBTTagCompound);
+        par1NBTTagCompound.setInteger("PartID", this.getPartID());
+    }
+
+    /**
+     * (abstract) Protected helper method to read subclass entity data from NBT.
+     */
+    public void readEntityFromNBT(NBTTagCompound par1NBTTagCompound)
+    {
+        super.readEntityFromNBT(par1NBTTagCompound);
+        this.setPartID(par1NBTTagCompound.getInteger("PartID"));
+    }
+}
