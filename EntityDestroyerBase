@@ -1,0 +1,168 @@
+package fr.AllFightvayzor.monsters.destroyer;
+
+import net.minecraft.command.IEntitySelector;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.SharedMonsterAttributes;
+import net.minecraft.potion.Potion;
+import net.minecraft.potion.PotionEffect;
+import net.minecraft.util.DamageSource;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.World;
+
+public abstract class EntityDestroyerBase extends EntityWormBase
+{
+    public int attackCounter = 0;
+    protected final IEntitySelector selector = new DestroyerHeadEntitySelector(this);
+
+    public EntityDestroyerBase(World par1World)
+    {
+        super(par1World);
+        this.setSize(2.0F, 2.0F);
+        this.isImmuneToFire = true;
+        this.ignoreFrustumCheck = true;
+        this.noClip = true;
+        this.renderDistanceWeight = 15.0D;
+        this.dragInAir = 0.995F;
+        this.dragInGround = 0.98F;
+        this.knockbackDivider = 1.0D;
+    }
+
+    protected void applyEntityAttributes()
+    {
+        super.applyEntityAttributes();
+        this.getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(2000.0D);
+    }
+
+    public ResourceLocation getTexture()
+    {
+        return null;
+    }
+
+    /**
+     * Returns true if the newer Entity AI code should be run
+     */
+    protected boolean isAIEnabled()
+    {
+        return true;
+    }
+
+    /**
+     * Called when the entity is attacked.
+     */
+    public boolean attackEntityFrom(DamageSource par1DamageSource, float par2)
+    {
+        if (par1DamageSource != DamageSource.cactus && !(par1DamageSource.getEntity() instanceof EntityProbe))
+        {
+            if (par1DamageSource.isProjectile())
+            {
+                par2 = (float)((double)par2 * 0.6D);
+            }
+
+            return super.attackEntityFrom(par1DamageSource, par2);
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if this entity can attack entities of the specified class.
+     */
+    public boolean canAttackClass(Class par1Class)
+    {
+        return !EntityProbe.class.isAssignableFrom(par1Class);
+    }
+
+    /**
+     * Determines if an entity can be despawned, used on idle far away entities
+     */
+    protected boolean canDespawn()
+    {
+        return false;
+    }
+
+    /**
+     * Called frequently so the entity can update its state every tick as required. For example, zombies and skeletons
+     * use this to react to sunlight and start to burn.
+     */
+    public void onLivingUpdate()
+    {
+        this.generateRandomParticles("reddust", 1, 0.0D);
+        super.onLivingUpdate();
+    }
+
+    public boolean attackEntityAsMob(Entity par1Entity)
+    {
+        boolean var2 = super.attackEntityAsMob(par1Entity);
+
+        if (var2 && par1Entity instanceof EntityLivingBase)
+        {
+            par1Entity.setFire(6);
+            ((EntityLivingBase)par1Entity).addPotionEffect(new PotionEffect(Potion.regenDisable.id, 120));
+        }
+
+        return var2;
+    }
+
+    public void useLaser(Entity entitytoshoot, boolean superstrong)
+    {
+        this.worldObj.playSoundAtEntity(this, "destroyer.laser", 3.0F, this.rand.nextFloat() * 0.2F + 0.9F);
+        EntityLaser laser = new EntityLaser(this.worldObj, this);
+        double var4 = entitytoshoot.posX - this.posX;
+        double var6 = entitytoshoot.posY + (double)entitytoshoot.getEyeHeight() - laser.posY;
+        double var8 = entitytoshoot.posZ - this.posZ;
+        float deviation;
+
+        if (superstrong)
+        {
+            deviation = 2.0F;
+            laser.setFire(8);
+            laser.setDamage(6.0D);
+        }
+        else
+        {
+            deviation = 4.0F;
+            laser.setDamage(4.5D);
+        }
+
+        laser.setThrowableHeading(var4, var6, var8, 2.5F, deviation);
+        laser.setIsCritical(true);
+
+        if (superstrong && this.rand.nextInt(110) == 0)
+        {
+            EntityProbe probe = new EntityProbe(this.worldObj);
+            probe.spawner = (EntityWormBase)this.followed;
+            probe.aliveTime = 1200;
+            probe.setPosition(this.posX, this.posY + 1.0D, this.posZ);
+            this.worldObj.spawnEntityInWorld(probe);
+        }
+
+        this.worldObj.spawnEntityInWorld(laser);
+    }
+
+    /**
+     * Returns the sound this mob makes when it is hurt.
+     */
+    protected String getHurtSound()
+    {
+        return "destroyer.hurt";
+    }
+
+    /**
+     * Returns the sound this mob makes on death.
+     */
+    protected String getDeathSound()
+    {
+        return "destroyer.explode";
+    }
+
+    /**
+     * Returns the volume for the sounds this mob makes.
+     */
+    public float getSoundVolume()
+    {
+        return 5.0F;
+    }
+}
