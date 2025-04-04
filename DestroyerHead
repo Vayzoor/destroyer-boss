@@ -1,0 +1,22 @@
+package fr.AllFightvayzor.monsters.destroyer;
+
+import net.minecraft.command.IEntitySelector;
+import net.minecraft.entity.Entity;
+
+public class DestroyerHeadEntitySelector implements IEntitySelector
+{
+    protected final IWorm user;
+
+    public DestroyerHeadEntitySelector(IWorm user)
+    {
+        this.user = user;
+    }
+
+    /**
+     * Return whether the specified entity is applicable to this filter.
+     */
+    public boolean isEntityApplicable(Entity ent)
+    {
+        return !(ent instanceof IWorm) || ((IWorm)ent).getUniqueWormID() != this.user.getUniqueWormID();
+    }
+}
