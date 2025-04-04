@@ -1,0 +1,109 @@
+package fr.AllFightvayzor.monsters.destroyer;
+
+import net.minecraft.entity.EntityCreature;
+import net.minecraft.util.MathHelper;
+import net.minecraft.world.World;
+
+public abstract class EntityBurrowing extends EntityCreature
+{
+    protected float dragInAir;
+    protected float dragInGround;
+
+    public EntityBurrowing(World par1World)
+    {
+        super(par1World);
+    }
+
+    /**
+     * Called when the mob is falling. Calculates and applies fall damage.
+     */
+    protected void fall(float par1) {}
+
+    public float getEyeHeight()
+    {
+        return this.height * 0.5F;
+    }
+
+    //TODO
+    public boolean getIsHead()
+    {
+        return false;
+    }
+
+    /**
+     * Takes in the distance the entity has fallen this tick and whether its on the ground to update the fall distance
+     * and deal fall damage if landing on the ground.  Args: distanceFallenThisTick, onGround
+     */
+    protected void updateFallState(double par1, boolean par3) {}
+
+    /**
+     * Moves the entity based on the specified heading.  Args: strafe, forward
+     */
+    public void moveEntityWithHeading(float par1, float par2)
+    {
+        float var3 = this.dragInGround;
+
+        if (!this.isEntityInsideOpaqueBlock() && !this.isInWater() && !this.handleLavaMovement())
+        {
+            var3 = this.dragInAir;
+        }
+        else
+        {
+            this.distanceWalkedModified = (float)((double)this.distanceWalkedModified + (double)MathHelper.sqrt_double(this.motionX * this.motionX + this.motionZ * this.motionZ) * 0.4D);
+            this.distanceWalkedOnStepModified = (float)((double)this.distanceWalkedOnStepModified + (double)MathHelper.sqrt_double(this.motionX * this.motionX + this.motionZ * this.motionZ + this.motionY * this.motionY) * 0.4D);
+
+            if (this.distanceWalkedOnStepModified > (float)this.nextStepDistance)
+            {
+                this.nextStepDistance = (int)this.distanceWalkedOnStepModified + 1;
+
+                if (this.isInWater())
+                {
+                    float var10 = MathHelper.sqrt_double(this.motionX * this.motionX * 0.20000000298023224D + this.motionY * this.motionY + this.motionZ * this.motionZ * 0.20000000298023224D) * 0.35F;
+
+                    if (var10 > 1.0F)
+                    {
+                        var10 = 1.0F;
+                    }
+
+                    this.playSound("game.neutral.swim", var10, 1.0F + (this.rand.nextFloat() - this.rand.nextFloat()) * 0.4F);
+                }
+
+                if (this.getIsHead())
+                {
+                    this.playSound("destroyer.dig", this.getSoundVolume(), 1.0F);
+                }
+            }
+        }
+
+        if (!this.getIsHead())
+        {
+            var3 *= 0.9F;
+        }
+
+        this.moveFlying(par1, par2, 0.02F);
+        this.moveEntity(this.motionX, this.motionY, this.motionZ);
+        this.motionX *= (double)var3;
+        this.motionY *= (double)var3;
+        this.motionZ *= (double)var3;
+        this.prevLimbSwingAmount = this.limbSwingAmount;
+        double var101 = this.posX - this.prevPosX;
+        double var9 = this.posZ - this.prevPosZ;
+        float var7 = MathHelper.sqrt_double(var101 * var101 + var9 * var9) * 4.0F;
+
+        if (var7 > 1.0F)
+        {
+            var7 = 1.0F;
+        }
+
+        this.limbSwingAmount += (var7 - this.limbSwingAmount) * 0.4F;
+        this.limbSwing += this.limbSwingAmount;
+    }
+
+    /**
+     * returns true if this entity is by a ladder, false otherwise
+     */
+    public boolean isOnLadder()
+    {
+        return false;
+    }
+}
